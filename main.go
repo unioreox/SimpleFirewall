@@ -60,7 +60,7 @@ func main() {
 func doAuthentication(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println("获取HTTP请求错误: " + err.Error())
 		w.WriteHeader(404)
 		w.Write([]byte("<h1>Not Verified</h1>"))
 		return
@@ -79,7 +79,7 @@ func doAuthentication(w http.ResponseWriter, r *http.Request) {
 		payload := strings.NewReader("response=" + k + "&secret=6Lc0py4kAAAAAJO9jEA5CEEna9RRIM7ZrIS3yMg4")
 		ar, err := http.Post(url, "application/x-www-form-urlencoded", payload)
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Println("验证提交错误: " + err.Error())
 			w.WriteHeader(404)
 			w.Write([]byte("<h1>Not Verified</h1>"))
 			return
@@ -129,7 +129,7 @@ func execShell(command string) bool {
 	c := exec.Command("sh", "-c", command)
 	r := c.Run()
 	if r != nil {
-		fmt.Println(r.Error())
+		fmt.Println("命令执行错误: " + command + "\n" + r.Error())
 		return false
 	}
 	return true
