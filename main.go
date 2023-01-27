@@ -33,15 +33,22 @@ func main() {
 	}
 	//放行认证端口(udp+tcp)
 	s1 := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(aport) + " -j ACCEPT")
-	//关闭访问端口
-	s2tcp := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
-	s2udp := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
-	//判断是否放行成功
-	if s1 == nil && s2tcp == nil && s2udp == nil {
-		fmt.Println("端口设置成功")
+	//检查访问端口
+	s2tcpc := execShell("iptables -C INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
+	s2udpc := execShell("iptables -C INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
+	if s2tcpc != nil || s2udpc != nil {
+		//关闭访问端口
+		s2tcp := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
+		s2udp := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
+		//判断是否放行成功
+		if s1 == nil && s2tcp == nil && s2udp == nil {
+			fmt.Println("端口设置成功")
+		} else {
+			fmt.Println("端口设置失败")
+			return
+		}
 	} else {
-		fmt.Println("端口设置失败")
-		return
+		fmt.Println("您已配置过该配置，恢复中")
 	}
 	//建立web服务器
 
