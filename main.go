@@ -9,7 +9,8 @@ import (
 	"strconv"
 	"strings"
 )
-var port = 22688 //访问端口
+
+var port = 22688  //访问端口
 var aport = 12321 //认证端口
 
 func main() {
@@ -33,9 +34,10 @@ func main() {
 	//放行认证端口(udp+tcp)
 	s1 := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(aport) + " -j ACCEPT")
 	//关闭访问端口
-	s2 := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
+	s2tcp := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
+	s2udp := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
 	//判断是否放行成功
-	if s1 == true && s2 == true {
+	if s1 == true && s2tcp == true && s2udp == true {
 		fmt.Println("端口设置成功")
 	} else {
 		fmt.Println("端口设置失败")
@@ -43,8 +45,8 @@ func main() {
 	}
 	//建立web服务器
 
-	http.Handle("/auth",http.HandlerFunc(doAuthentication))
-	http.Handle("/",http.FileServer(http.Dir("./html/")))
+	http.Handle("/auth", http.HandlerFunc(doAuthentication))
+	http.Handle("/", http.FileServer(http.Dir("./html/")))
 	fmt.Println("认证程序启动中...如未报错则启动成功")
 	err := http.ListenAndServe("0.0.0.0:"+strconv.Itoa(aport), nil)
 	if err != nil {
@@ -54,8 +56,8 @@ func main() {
 	}
 }
 
-//后端验证处理函数
-func doAuthentication(w http.ResponseWriter, r *http.Request)  {
+// 后端验证处理函数
+func doAuthentication(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		fmt.Println(err.Error())
@@ -67,14 +69,14 @@ func doAuthentication(w http.ResponseWriter, r *http.Request)  {
 	ip := r.RemoteAddr
 	length := len(strings.Split(ip, ":"))
 	if length > 2 {
-		fmt.Println("Non-IPv4 Detected"+ip)
+		fmt.Println("Non-IPv4 Detected" + ip)
 		w.WriteHeader(404)
 		w.Write([]byte("<h1>IPv4 Only</h1>"))
 	} else {
 		//reCaptcha后端验证
 		k := r.Form.Get("g-recaptcha-response")
 		url := "https://www.google.com/recaptcha/api/siteverify"
-		payload := strings.NewReader("response="+k+"&secret=6Lc0py4kAAAAAJO9jEA5CEEna9RRIM7ZrIS3yMg4")
+		payload := strings.NewReader("response=" + k + "&secret=6Lc0py4kAAAAAJO9jEA5CEEna9RRIM7ZrIS3yMg4")
 		ar, err := http.Post(url, "application/x-www-form-urlencoded", payload)
 		if err != nil {
 			fmt.Println(err.Error())
@@ -100,14 +102,19 @@ func doAuthentication(w http.ResponseWriter, r *http.Request)  {
 		s4 := execShell("iptables -C INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		if s3 || s4 {
 			fmt.Println("IPv4 Detected: " + rip)
-			w.Write([]byte("<h1>Already Exists! "+rip+"</h1>"))
+			w.Write([]byte("<h1>Already Exists! " + rip + "</h1>"))
 			return
 		}
 		s5 := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		s6 := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
-		if s5 && s6 {
+		s7tcp := execShell("iptables -D INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
+		s7udp := execShell("iptables -D INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
+		s8tcp := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
+		s8udp := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
+
+		if s5 && s6 && s7tcp && s7udp && s8tcp && s8udp {
 			fmt.Println("IPv4 Detected: " + rip)
-			w.Write([]byte("<h1>Success! "+rip+"</h1>"))
+			w.Write([]byte("<h1>Success! " + rip + "</h1>"))
 			return
 		} else {
 			fmt.Println("IPv4 Detected: " + rip)
