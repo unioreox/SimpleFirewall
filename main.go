@@ -37,7 +37,7 @@ func main() {
 	s2tcp := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
 	s2udp := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
 	//判断是否放行成功
-	if s1 == true && s2tcp == true && s2udp == true {
+	if s1 == nil && s2tcp == nil && s2udp == nil {
 		fmt.Println("端口设置成功")
 	} else {
 		fmt.Println("端口设置失败")
@@ -100,11 +100,12 @@ func doAuthentication(w http.ResponseWriter, r *http.Request) {
 
 		s3 := execShell("iptables -C INPUT -p tcp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		s4 := execShell("iptables -C INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
-		if s3 || s4 {
+		if s3 == nil || s4 == nil {
 			fmt.Println("IPv4 Detected: " + rip)
 			w.Write([]byte("<h1>Already Exists! " + rip + "</h1>"))
 			return
 		}
+
 		s5 := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		s6 := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		s7tcp := execShell("iptables -D INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
@@ -112,7 +113,7 @@ func doAuthentication(w http.ResponseWriter, r *http.Request) {
 		s8tcp := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
 		s8udp := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
 
-		if s5 && s6 && s7tcp && s7udp && s8tcp && s8udp {
+		if s5 == nil && s6 == nil && s7tcp == nil && s7udp == nil && s8tcp == nil && s8udp == nil {
 			fmt.Println("IPv4 Detected: " + rip)
 			w.Write([]byte("<h1>Success! " + rip + "</h1>"))
 			return
@@ -125,12 +126,8 @@ func doAuthentication(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func execShell(command string) bool {
+func execShell(command string) error {
 	c := exec.Command("sh", "-c", command)
 	r := c.Run()
-	if r != nil {
-		fmt.Println("命令执行错误: " + command + "\n" + r.Error())
-		return false
-	}
-	return true
+	return r
 }
