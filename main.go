@@ -98,13 +98,13 @@ func doAuthentication(w http.ResponseWriter, r *http.Request)  {
 
 		s3 := execShell("iptables -C INPUT -p tcp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		s4 := execShell("iptables -C INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
-		s5 := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
-		s6 := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		if s3 || s4 {
 			fmt.Println("IPv4 Detected: " + rip)
 			w.Write([]byte("<h1>Already Exists! "+rip+"</h1>"))
 			return
 		}
+		s5 := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
+		s6 := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		if s5 && s6 {
 			fmt.Println("IPv4 Detected: " + rip)
 			w.Write([]byte("<h1>Success! "+rip+"</h1>"))
