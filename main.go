@@ -102,17 +102,17 @@ func doAuthentication(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		rip := strings.Split(ip, ":")[0]
-		//放行访问端口
+
 		//判断规则是否存在
 
 		s3 := execShell("iptables -C INPUT -p tcp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		s4 := execShell("iptables -C INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		if s3 == nil || s4 == nil {
-			fmt.Println("IPv4 Detected: " + rip)
+			fmt.Println("Already Exists: " + rip)
 			w.Write([]byte("<h1>Already Exists! " + rip + "</h1>"))
 			return
 		}
-
+		//放行访问端口
 		s5 := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		s6 := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
 		s7tcp := execShell("iptables -D INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
