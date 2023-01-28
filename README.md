@@ -2,21 +2,15 @@
 - 基于iptables
 - 目前功能仅限于用户验证和添加白名单
 - 理论上可以提高节点安全性，抗封锁，降低主动探测风险
-- 目前仅支持IPv4
+- 目前仅支持IPv4  
+  
+  
+[UniOreoX](https://github.com/unioreox)  →[Telegram](https://t.me/unichannelx)  
 
+## Credits
 
-## 开发&感谢
-
-排名不分先后
-
-
-
-[黑弩](https://github.com/heinu123)  →[telegram频道](https://t.me/heinuhome)
-
-[Aries](https://github.com/AriesEDGE)  →[telegram频道](https://t.me/aries_init)
-
-[UniOreoX](https://github.com/unioreox)  →[telegram频道](https://t.me/unichannelx)
-
-
-
+[WhiteList in Python](https://github.com/heinu123/whitelist)
+[AutoWhite in Shell&Python](https://github.com/AriesEDGE/ufwfornode)
+  
+  
 觉得项目不错不妨给我点个小小的Star (ฅ'ω'ฅ).
