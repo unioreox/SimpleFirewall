@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # SimpleFirewall - Go实现的简易防火墙(用户自动认证白名单)
 - 基于iptables实现
 - 目前功能仅限于用户验证和添加白名单
@@ -36,22 +35,6 @@ result.html  //结果显示界面模板
 
 ## Credits
 - [Toml-GoLib]("https://github.com/pelletier/go-toml")
-- [Cloudflare-Turnstile]("https://github.com/cloudflare")
+- [Cloudflare-Turnstile]("https://github.com/cloudflare")  
+
 您的每一个Star都是我们改进的动力
-=======
-# SimpleFirewall - Go实现的简易防火墙
-
-## 目前实现的功能
-- 基于iptables
-- 目前功能仅限于用户验证和添加白名单
-- 理论上可以提高节点安全性，抗封锁，降低主动探测风险
-- 目前仅支持IPv4  
-
-### [Telegram](https://t.me/unichannelx)  
-## Credits
-- [WhiteList in Python](https://github.com/heinu123/whitelist)
-- [AutoWhite in Shell&Python](https://github.com/AriesEDGE/ufwfornode)
-  
-  
-觉得项目不错不妨给我点个小小的Star (ฅ'ω'ฅ).
->>>>>>> 744985029c05f1429bd4179dce4cc874eac64841
