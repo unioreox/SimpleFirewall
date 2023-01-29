@@ -34,7 +34,7 @@ result.html  //结果显示界面模板
 ```
 
 ## Credits
-- [Toml-GoLib](https://github.com/pelletier/go-toml)
-- [Cloudflare-Turnstile](https://github.com/cloudflare)  
+[Toml-GoLib](https://github.com/pelletier/go-toml)  
+[Cloudflare-Turnstile](https://github.com/cloudflare)  
 
 您的每一个Star都是我们改进的动力
