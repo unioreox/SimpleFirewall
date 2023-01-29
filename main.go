@@ -37,8 +37,11 @@ func run() {
 	//禁用用户端口
 	commandUserCheckErrorTCP := runCommand("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 	commandUserCheckErrorUDP := runCommand("iptables -C INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+	fmt.Println(commandUserCheckErrorTCP)
 
-	if commandAuthCheckError != nil {
+	//判断iptables规则是否存在
+
+	if strings.Contains(commandAuthCheckError.Error(), "No chain/target/match by that name") {
 		fmt.Println("放行认证端口(tcp) 规则已存在,不更改")
 	} else {
 		fmt.Println("放行认证端口(tcp) 规则不存在,正在添加")
@@ -46,7 +49,7 @@ func run() {
 		getError(commandAuthAcceptError)
 	}
 
-	if commandUserCheckErrorTCP != nil || commandUserCheckErrorUDP != nil {
+	if strings.Contains(commandUserCheckErrorTCP.Error(), "No chain/target/match by that name") || strings.Contains(commandUserCheckErrorUDP.Error(), "No chain/target/match by that name") {
 		fmt.Println("禁用用户端口(tcp+udp) 规则已存在,不更改")
 	} else {
 		fmt.Println("禁用用户端口(tcp+udp) 规则不存在,正在添加")
@@ -134,5 +137,6 @@ func getError(e error) {
 }
 
 func runCommand(command string) error {
-	return exec.Command("/bin/bash", "-c", command).Start()
+	_, err := exec.Command("/bin/bash", "-c", command).Output()
+	return err
 }
