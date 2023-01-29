@@ -95,7 +95,7 @@ func auth(w http.ResponseWriter, r *http.Request) {
 			ip := ipAddr.Addr().String()
 			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
 			commandCheckError := runCommand("iptables -C INPUT -s " + ip + " -j ACCEPT")
-			if commandCheckError != nil {
+			if commandCheckError == nil {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已存在", -1)
 			} else {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已通过认证", -1)
