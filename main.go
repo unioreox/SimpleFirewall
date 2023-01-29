@@ -38,14 +38,14 @@ func run() {
 	commandUserCheckErrorTCP := runCommand("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 	commandUserCheckErrorUDP := runCommand("iptables -C INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 
-	if commandAuthCheckError != nil {
+	if commandAuthCheckError == nil {
 		fmt.Println("放行认证端口(tcp) 规则已存在,不更改")
 	} else {
 		fmt.Println("放行认证端口(tcp) 规则不存在,正在添加")
 		commandAuthAcceptError := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
 		getError(commandAuthAcceptError)
 	}
-	if commandUserCheckErrorTCP != nil || commandUserCheckErrorUDP != nil {
+	if commandUserCheckErrorTCP == nil || commandUserCheckErrorUDP == nil {
 		fmt.Println("禁用用户端口(tcp+udp) 规则已存在,不更改")
 	} else {
 		fmt.Println("禁用用户端口(tcp+udp) 规则不存在,正在添加")
