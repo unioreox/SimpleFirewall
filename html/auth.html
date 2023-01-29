@@ -4,19 +4,26 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-sacle=1, maximum-scale=1" >
     <title>UniOreoX白名单认证系统</title>
-    <script src="https://www.recaptcha.net/recaptcha/api.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
 </head>
 <body>
-<h1>UniOreoX白名单认证系统 - reCAPTCHAv2版</h1>
-<p>我知道界面很垃圾!!!又不是不能用</p>
-<p>请关闭代理直连访问，我们不会窃取您的IP地址</p>
+<h1>UniOreoX白名单认证系统</h1>
+<p>初始界面虽然垃圾，但您可以自主修改，配置变量已在注释中注明</p>
+<p>请关闭代理直连访问，您的IP：{{IP}}</p>
 <form action="/auth" method="POST">
-    <div class="g-recaptcha" data-sitekey="6Lc0py4kAAAAAKPExA_oCXg385qJR68UO0IVI77n"></div>
-    <br/>
-    <input type="submit" value="点我认证">
+    <div class="cf-turnstile" data-sitekey="{{Turnstile-SiteKey}}" data-theme="light"></div>
+    <button type="submit" value="Submit">验证</button>
 </form>
+</div>
 <p><a href="https://t.me/unichannelx">Telegram</a></p>
 <p><a href="https://github.com/unioreox">Github</a></p>
 <p></p>
 </body>
 </html>
+<!--
+配置变量
+Turnstile-SiteKey   Cloudflare人机验证Turnstile的SiteKey
+IP                  访问者IP
+
+-->

@@ -1,140 +1,131 @@
 package main
 
 import (
+	sfwconfig "SimpleFirewall/config"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/netip"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 )
 
-var port = 22688  //访问端口
-var aport = 12321 //认证端口
-
 func main() {
-	fmt.Println("SFW正在启动...")
-	fmt.Println("输入您需要用户认证访问的端口(1-65535 默认为22688)：")
-	//用户输入访问端口
-	fmt.Scanln(&port)
-	//判断端口是否合法
-	if port < 1 || port > 65535 {
-		fmt.Println("端口不合法 1-65535")
-		return
-	}
-	fmt.Println("输入您需要搭建认证程序的端口(1-65535 默认为12321)：")
-	//等待用户输入认证端口
-	fmt.Scanln(&aport)
-	//判断端口是否合法
-	if aport < 1 || aport > 65535 {
-		fmt.Println("端口不合法 1-65535")
-		return
-	}
-	//放行认证端口(udp+tcp)
-	s1 := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(aport) + " -j ACCEPT")
-	//检查访问端口
-	s2tcpc := execShell("iptables -C INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
-	s2udpc := execShell("iptables -C INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
-	if s2tcpc != nil || s2udpc != nil {
-		//关闭访问端口
-		s2tcp := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
-		s2udp := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
-		//判断是否放行成功
-		if s1 == nil && s2tcp == nil && s2udp == nil {
-			fmt.Println("端口设置成功")
-		} else {
-			fmt.Println("端口设置失败")
-			return
-		}
-	} else {
-		fmt.Println("您已配置过该配置，恢复中")
-	}
-	//建立web服务器
+	args := os.Args
+	switch args[0] {
+	case "run":
+		run()
+	case "config":
 
-	http.Handle("/auth", http.HandlerFunc(doAuthentication))
-	http.Handle("/", http.FileServer(http.Dir("./html/")))
-	fmt.Println("认证程序启动中...如未报错则启动成功")
-	err := http.ListenAndServe("0.0.0.0:"+strconv.Itoa(aport), nil)
-	if err != nil {
-		fmt.Println("认证程序启动失败")
-		fmt.Println(err.Error())
-		return
 	}
+
 }
-
-// 后端验证处理函数
-func doAuthentication(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		fmt.Println("获取HTTP请求错误: " + err.Error())
-		w.WriteHeader(404)
-		w.Write([]byte("<h1>Not Verified</h1>"))
-		return
+func run() {
+	fmt.Println("SimpleFirewall正在启动...")
+	fmt.Println("读取配置...")
+	//读取配置文件
+	config := sfwconfig.ReadConfig("./conf.toml")
+	fmt.Println("执行防冲突及初始化命令")
+	//执行配置文件中初始化及防止冲突命令
+	for index, value := range config.Commands {
+		fmt.Println("执行第" + strconv.Itoa(index+1) + "条命令")
+		err := exec.Command(value).Run()
+		getError(err)
 	}
-	//判断是否ipv4
-	ip := r.RemoteAddr
-	length := len(strings.Split(ip, ":"))
-	if length > 2 {
-		fmt.Println("Non-IPv4 Detected" + ip)
-		w.WriteHeader(404)
-		w.Write([]byte("<h1>IPv4 Only</h1>"))
+	fmt.Println("防冲突及初始化命令执行完毕")
+
+	//配置iptables规则
+	fmt.Println("检查iptables规则...")
+	//检查规则是否存在
+	//放行认证端口(tcp)
+	commandAuthCheckError := exec.Command("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT").Run()
+	//禁用用户端口
+	commandUserCheckError := exec.Command("iptables -C INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP").Run()
+
+	if commandAuthCheckError != nil {
+		fmt.Println("放行认证端口(tcp) 规则已存在,不更改")
 	} else {
-		//reCaptcha后端验证
-		k := r.Form.Get("g-recaptcha-response")
-		url := "https://www.google.com/recaptcha/api/siteverify"
-		payload := strings.NewReader("response=" + k + "&secret=6Lc0py4kAAAAAJO9jEA5CEEna9RRIM7ZrIS3yMg4")
-		ar, err := http.Post(url, "application/x-www-form-urlencoded", payload)
-		if err != nil {
-			fmt.Println("验证提交错误: " + err.Error())
-			w.WriteHeader(404)
-			w.Write([]byte("<h1>Not Verified</h1>"))
-			return
-		}
-		defer ar.Body.Close()
-		result := make(map[string]interface{})
-		body, _ := io.ReadAll(ar.Body)
-		json.Unmarshal(body, &result)
-		if result["success"].(bool) == false {
-			fmt.Println("reCaptcha Failed: " + ip)
-			w.WriteHeader(404)
-			w.Write([]byte("<h1>Not Verified</h1>"))
-			return
-		}
-		rip := strings.Split(ip, ":")[0]
+		fmt.Println("放行认证端口(tcp) 规则不存在,正在添加")
+		commandAuthAcceptError := exec.Command("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT").Run()
+		getError(commandAuthAcceptError)
+	}
+	if commandUserCheckError != nil {
+		fmt.Println("禁用用户端口(tcp+udp) 规则已存在,不更改")
+	} else {
+		fmt.Println("禁用用户端口(tcp+udp) 规则不存在,正在添加")
+		commandUserDropError := exec.Command("iptables -A INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP").Run()
+		getError(commandUserDropError)
+	}
+	fmt.Println("iptables规则检查完毕")
+	//配置完毕
 
-		//判断规则是否存在
-
-		s3 := execShell("iptables -C INPUT -p tcp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
-		s4 := execShell("iptables -C INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
-		if s3 == nil || s4 == nil {
-			fmt.Println("Already Exists: " + rip)
-			w.Write([]byte("<h1>Already Exists! " + rip + "</h1>"))
-			return
-		}
-		//放行访问端口
-		s5 := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
-		s6 := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -s " + rip + " -j ACCEPT")
-		s7tcp := execShell("iptables -D INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
-		s7udp := execShell("iptables -D INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
-		s8tcp := execShell("iptables -A INPUT -p tcp --dport " + strconv.Itoa(port) + " -j DROP")
-		s8udp := execShell("iptables -A INPUT -p udp --dport " + strconv.Itoa(port) + " -j DROP")
-
-		if s5 == nil && s6 == nil && s7tcp == nil && s7udp == nil && s8tcp == nil && s8udp == nil {
-			fmt.Println("IPv4 Detected: " + rip)
-			w.Write([]byte("<h1>Success! " + rip + "</h1>"))
-			return
+	//启动认证服务器
+	fmt.Println("已启动认证服务器")
+	http.HandleFunc("/auth", auth)
+	httpListenError := http.ListenAndServe(":"+strconv.Itoa(config.AuthPort), nil)
+	getError(httpListenError)
+}
+func auth(w http.ResponseWriter, r *http.Request) {
+	config := sfwconfig.ReadConfig("./conf.toml")
+	r.ParseForm()
+	authToken := r.Form.Get("cf-turnstile-response")
+	if authToken == "" {
+		//认证处理
+		remoteAddr := r.RemoteAddr
+		ipAddr, parseIPError := netip.ParseAddrPort(remoteAddr)
+		getError(parseIPError)
+		ip := ipAddr.Addr().String()
+		authHTML := sfwconfig.ReadTemplate("./html/auth.html")
+		authHTML = strings.Replace(authHTML, "{{IP}}", ip, -1)
+		authHTML = strings.Replace(authHTML, "{{Turnstile-SiteKey}}", sfwconfig.ReadConfig("./conf.toml").TurnstileSiteKey, -1)
+		w.Write([]byte(authHTML))
+	} else {
+		result, postError := http.Post("https://challenges.cloudflare.com/turnstile/v0/siteverify", "application/x-www-form-urlencoded", strings.NewReader("secret="+sfwconfig.ReadConfig("./conf.toml").TurnstileSecretKey+"&response="+authToken))
+		getError(postError)
+		defer result.Body.Close()
+		body, readError := io.ReadAll(result.Body)
+		getError(readError)
+		var resultJSON map[string]interface{}
+		jsonError := json.Unmarshal(body, &resultJSON)
+		getError(jsonError)
+		if resultJSON["success"].(bool) {
+			remoteAddr := r.RemoteAddr
+			ipAddr, parseIPError := netip.ParseAddrPort(remoteAddr)
+			getError(parseIPError)
+			ip := ipAddr.Addr().String()
+			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
+			commandCheckError := exec.Command("iptables -C INPUT -s " + ip + " -j ACCEPT").Run()
+			if commandCheckError != nil {
+				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已存在", -1)
+			} else {
+				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已通过认证", -1)
+				commandUserDeleteError := exec.Command("iptables -D INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP").Run()
+				getError(commandUserDeleteError)
+				commandAcceptError := exec.Command("iptables -A INPUT -s " + ip + " -j ACCEPT").Run()
+				getError(commandAcceptError)
+				commandUserDropError := exec.Command("iptables -A INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP").Run()
+				getError(commandUserDropError)
+			}
+			w.WriteHeader(200)
+			w.Write([]byte(resultHTML))
 		} else {
-			fmt.Println("IPv4 Detected: " + rip)
-			w.WriteHeader(404)
-			w.Write([]byte("<h1>Not Verified</h1>"))
-			return
+			remoteAddr := r.RemoteAddr
+			ipAddr, parseIPError := netip.ParseAddrPort(remoteAddr)
+			getError(parseIPError)
+			ip := ipAddr.Addr().String()
+			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
+			resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "很遗憾，您的IP："+ip+"未通过认证", -1)
+			w.WriteHeader(200)
+			w.Write([]byte(resultHTML))
 		}
 	}
 }
 
-func execShell(command string) error {
-	c := exec.Command("sh", "-c", command)
-	r := c.Run()
-	return r
+func getError(e error) {
+	if e != nil {
+		panic(e)
+	}
 }

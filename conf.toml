@@ -1,0 +1,7 @@
+UserPort = 12321
+AuthPort = 22588
+TurnstileSiteKey = "0x4AAAAAAACMHRDyJ_vifS1F"
+TurnstileSecretKey = "0x4AAAAAAACMHZaUN7iX5nO6vbsm6q0m4d8"
+Commands = [
+    ""
+]
