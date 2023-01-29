@@ -37,7 +37,6 @@ func run() {
 	//禁用用户端口
 	commandUserCheckErrorTCP := runCommand("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 	commandUserCheckErrorUDP := runCommand("iptables -C INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-	fmt.Println(commandUserCheckErrorTCP)
 
 	//判断iptables规则是否存在
 
