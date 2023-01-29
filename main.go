@@ -24,7 +24,7 @@ func run() {
 	//执行配置文件中初始化及防止冲突命令
 	for index, value := range config.Commands {
 		fmt.Println("执行第" + strconv.Itoa(index+1) + "条命令")
-		err := exec.Command(value).Run()
+		err := runCommand(value)
 		getError(err)
 	}
 	fmt.Println("防冲突及初始化命令执行完毕")
@@ -33,22 +33,22 @@ func run() {
 	fmt.Println("检查iptables规则...")
 	//检查规则是否存在
 	//放行认证端口(tcp)
-	commandAuthCheckError := exec.Command("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT").Run()
+	commandAuthCheckError := runCommand("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
 	//禁用用户端口
-	commandUserCheckError := exec.Command("iptables -C INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP").Run()
+	commandUserCheckError := runCommand("iptables -C INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 
 	if commandAuthCheckError != nil {
 		fmt.Println("放行认证端口(tcp) 规则已存在,不更改")
 	} else {
 		fmt.Println("放行认证端口(tcp) 规则不存在,正在添加")
-		commandAuthAcceptError := exec.Command("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT").Run()
+		commandAuthAcceptError := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
 		getError(commandAuthAcceptError)
 	}
 	if commandUserCheckError != nil {
 		fmt.Println("禁用用户端口(tcp+udp) 规则已存在,不更改")
 	} else {
 		fmt.Println("禁用用户端口(tcp+udp) 规则不存在,正在添加")
-		commandUserDropError := exec.Command("iptables -A INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP").Run()
+		commandUserDropError := runCommand("iptables -A INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 		getError(commandUserDropError)
 	}
 	fmt.Println("iptables规则检查完毕")
@@ -89,16 +89,16 @@ func auth(w http.ResponseWriter, r *http.Request) {
 			getError(parseIPError)
 			ip := ipAddr.Addr().String()
 			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
-			commandCheckError := exec.Command("iptables -C INPUT -s " + ip + " -j ACCEPT").Run()
+			commandCheckError := runCommand("iptables -C INPUT -s " + ip + " -j ACCEPT")
 			if commandCheckError != nil {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已存在", -1)
 			} else {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已通过认证", -1)
-				commandUserDeleteError := exec.Command("iptables -D INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP").Run()
+				commandUserDeleteError := runCommand("iptables -D INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 				getError(commandUserDeleteError)
-				commandAcceptError := exec.Command("iptables -A INPUT -s " + ip + " -j ACCEPT").Run()
+				commandAcceptError := runCommand("iptables -A INPUT -s " + ip + " -j ACCEPT")
 				getError(commandAcceptError)
-				commandUserDropError := exec.Command("iptables -A INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP").Run()
+				commandUserDropError := runCommand("iptables -A INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 				getError(commandUserDropError)
 			}
 			w.WriteHeader(200)
@@ -120,4 +120,8 @@ func getError(e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+func runCommand(command string) error {
+	return exec.Command("/bin/bash", "-c", command).Run()
 }
