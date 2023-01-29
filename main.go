@@ -39,7 +39,7 @@ func run() {
 	commandUserCheckErrorUDP := runCommand("iptables -C INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 
 	//判断iptables规则是否存在
-	if strings.Contains(commandAuthCheckError.Error(), "No chain/target/match by that name") {
+	if commandAuthCheckError == nil {
 		fmt.Println("放行认证端口(tcp) 规则已存在,不更改")
 	} else {
 		fmt.Println("放行认证端口(tcp) 规则不存在,正在添加")
@@ -47,7 +47,7 @@ func run() {
 		getError(commandAuthAcceptError)
 	}
 
-	if strings.Contains(commandUserCheckErrorTCP.Error(), "No chain/target/match by that name") || strings.Contains(commandUserCheckErrorUDP.Error(), "No chain/target/match by that name") {
+	if commandUserCheckErrorTCP == nil || commandUserCheckErrorUDP == nil {
 		fmt.Println("禁用用户端口(tcp+udp) 规则已存在,不更改")
 	} else {
 		fmt.Println("禁用用户端口(tcp+udp) 规则不存在,正在添加")
