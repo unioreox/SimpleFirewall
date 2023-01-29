@@ -35,7 +35,8 @@ func run() {
 	//放行认证端口(tcp)
 	commandAuthCheckError := runCommand("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
 	//禁用用户端口
-	commandUserCheckError := runCommand("iptables -C INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+	commandUserCheckErrorTCP := runCommand("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+	commandUserCheckErrorUDP := runCommand("iptables -C INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 
 	if commandAuthCheckError != nil {
 		fmt.Println("放行认证端口(tcp) 规则已存在,不更改")
@@ -44,12 +45,14 @@ func run() {
 		commandAuthAcceptError := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
 		getError(commandAuthAcceptError)
 	}
-	if commandUserCheckError != nil {
+	if commandUserCheckErrorTCP != nil || commandUserCheckErrorUDP != nil {
 		fmt.Println("禁用用户端口(tcp+udp) 规则已存在,不更改")
 	} else {
 		fmt.Println("禁用用户端口(tcp+udp) 规则不存在,正在添加")
-		commandUserDropError := runCommand("iptables -A INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-		getError(commandUserDropError)
+		commandUserDropErrorTCP := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+		getError(commandUserDropErrorTCP)
+		commandUserDropErrorUDP := runCommand("iptables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+		getError(commandUserDropErrorUDP)
 	}
 	fmt.Println("iptables规则检查完毕")
 	//配置完毕
@@ -94,12 +97,19 @@ func auth(w http.ResponseWriter, r *http.Request) {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已存在", -1)
 			} else {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已通过认证", -1)
-				commandUserDeleteError := runCommand("iptables -D INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-				getError(commandUserDeleteError)
+
+				//删除原规则
+				commandUserDeleteErrorTCP := runCommand("iptables -D INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+				getError(commandUserDeleteErrorTCP)
+				commandUserDeleteErrorUDP := runCommand("iptables -D INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+				getError(commandUserDeleteErrorUDP)
 				commandAcceptError := runCommand("iptables -A INPUT -s " + ip + " -j ACCEPT")
 				getError(commandAcceptError)
-				commandUserDropError := runCommand("iptables -A INPUT --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-				getError(commandUserDropError)
+				commandUserDropErrorTCP := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+				getError(commandUserDropErrorTCP)
+				commandUserDropErrorUDP := runCommand("iptables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+				getError(commandUserDropErrorUDP)
+
 			}
 			w.WriteHeader(200)
 			w.Write([]byte(resultHTML))
