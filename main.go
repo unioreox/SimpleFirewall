@@ -7,21 +7,13 @@ import (
 	"io"
 	"net/http"
 	"net/netip"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 )
 
 func main() {
-	args := os.Args
-	switch args[0] {
-	case "run":
-		run()
-	case "config":
-
-	}
-
+	run()
 }
 func run() {
 	fmt.Println("SimpleFirewall正在启动...")
