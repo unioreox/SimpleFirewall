@@ -7,7 +7,7 @@
 - 理论支持任何安装有iptables的Linux系统
 - 支持使用Toml配置文件，无需动态配置
 - 界面支持定制化，可以自行修改模板文件(html/auth.html && html/result.html)来优化界面
-
+- 计划支持：TelegramBot手动动态删减IP白名单;限制验证次数;
 
 ### 配置指南
 - 配置文件路径: 程序同目录下的 conf.toml 文件
