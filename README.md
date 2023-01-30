@@ -7,7 +7,7 @@
 - 理论支持任何安装有iptables的Linux系统
 - 支持使用Toml配置文件，无需动态配置
 - 界面支持定制化，可以自行修改模板文件(html/auth.html && html/result.html)来优化界面
-
+- 计划支持：TelegramBot手动动态删减IP白名单;限制验证次数;
 
 ### 配置指南
 - 配置文件路径: 程序同目录下的 conf.toml 文件
@@ -27,13 +27,14 @@ Commands = [
 ```
 
 ### 安装指南
-- 拉取项目
+- 拉取并编译项目
 ```shell
 git clone https://github.com/unioreox/SimpleFirewall.git && cd SimpleFirewall
-```
-- 编译项目（[确保Golang已安装](https://go.dev/doc/install)）
-```
 go build
+```
+- 运行项目（[确保Golang已安装](https://go.dev/doc/install)）
+```
+./SimpleFirewall
 ```
 
 ### UI定制指南
