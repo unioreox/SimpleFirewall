@@ -19,8 +19,8 @@ TurnstileSiteKey = "0x4AAAAAAACMHRDyJ_vifS1F" # Cloudflare Turnstile SiteKey，�
 TurnstileSecretKey = "0x4AAAAAAACMHZaUN7iX5nO6vbsm6q0m4d8" # Cloudflare Turnstile SecretKey，必需
 TelegramAdmin = 0 # Telegram管理员ID，不必需
 TelegramToken = "" # Telegram Bot Token，不必需
-TLSCert = "" # SSL证书，不必需
-TLSKey = "" # SSL密钥，不必需
+TLSCert = "" # SSL证书路径，不必需
+TLSKey = "" # SSL密钥路径，不必需
 Commands = [
     ""
 ] # 需要执行的防止iptables冲突的命令，例如: iptables -F 等，不必需，但是建议在已经使用iptables的服务器上配置，防止冲突

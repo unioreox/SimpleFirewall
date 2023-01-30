@@ -2,8 +2,6 @@ package main
 
 import (
 	sfwconfig "SimpleFirewall/config"
-	"SimpleFirewall/telegram"
-
 	"encoding/json"
 	"fmt"
 	"io"
