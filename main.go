@@ -84,15 +84,38 @@ func auth(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	authToken := r.Form.Get("cf-turnstile-response")
 	if authToken == "" {
-		//认证处理
 		remoteAddr := r.RemoteAddr
 		ipAddr, parseIPError := netip.ParseAddrPort(remoteAddr)
 		getError(parseIPError)
 		ip := ipAddr.Addr().String()
-		authHTML := sfwconfig.ReadTemplate("./html/auth.html")
-		authHTML = strings.Replace(authHTML, "{{IP}}", ip, -1)
-		authHTML = strings.Replace(authHTML, "{{Turnstile-SiteKey}}", sfwconfig.ReadConfig("./conf.toml").TurnstileSiteKey, -1)
-		w.Write([]byte(authHTML))
+		isIPv6 := ipAddr.Addr().Is6()
+		if isIPv6 {
+			commandCheckError := runCommand("ip6tables -C INPUT -s " + ip + " -j ACCEPT")
+			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
+			if commandCheckError == nil {
+				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已存在", -1)
+			} else {
+				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已通过认证", -1)
+			}
+			//删除原规则
+			commandUserDeleteErrorTCP := runCommand("ip6tables -D INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+			getError(commandUserDeleteErrorTCP)
+			commandUserDeleteErrorUDP := runCommand("ip6tables -D INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+			getError(commandUserDeleteErrorUDP)
+			commandAcceptError := runCommand("ip6tables -A INPUT -s " + ip + " -j ACCEPT")
+			getError(commandAcceptError)
+			commandUserDropErrorTCP := runCommand("ip6tables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+			getError(commandUserDropErrorTCP)
+			commandUserDropErrorUDP := runCommand("ip6tables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+			getError(commandUserDropErrorUDP)
+			w.WriteHeader(200)
+			w.Write([]byte(resultHTML))
+		} else {
+			authHTML := sfwconfig.ReadTemplate("./html/auth.html")
+			authHTML = strings.Replace(authHTML, "{{IP}}", ip, -1)
+			authHTML = strings.Replace(authHTML, "{{Turnstile-SiteKey}}", sfwconfig.ReadConfig("./conf.toml").TurnstileSiteKey, -1)
+			w.Write([]byte(authHTML))
+		}
 	} else {
 		result, postError := http.Post("https://challenges.cloudflare.com/turnstile/v0/siteverify", "application/x-www-form-urlencoded", strings.NewReader("secret="+sfwconfig.ReadConfig("./conf.toml").TurnstileSecretKey+"&response="+authToken))
 		getError(postError)
@@ -111,12 +134,8 @@ func auth(w http.ResponseWriter, r *http.Request) {
 
 			var commandCheckError error
 			isIPv4 := ipAddr.Addr().Is4()
-			isIPv6 := ipAddr.Addr().Is6()
 			if isIPv4 {
 				commandCheckError = runCommand("iptables -C INPUT -s " + ip + " -j ACCEPT")
-			}
-			if isIPv6 {
-				commandCheckError = runCommand("ip6tables -C INPUT -s " + ip + " -j ACCEPT")
 			}
 			if commandCheckError == nil {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已存在", -1)
@@ -136,21 +155,6 @@ func auth(w http.ResponseWriter, r *http.Request) {
 					commandUserDropErrorUDP := runCommand("iptables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 					getError(commandUserDropErrorUDP)
 				}
-
-				if isIPv6 {
-					//删除原规则
-					commandUserDeleteErrorTCP := runCommand("ip6tables -D INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-					getError(commandUserDeleteErrorTCP)
-					commandUserDeleteErrorUDP := runCommand("ip6tables -D INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-					getError(commandUserDeleteErrorUDP)
-					commandAcceptError := runCommand("ip6tables -A INPUT -s " + ip + " -j ACCEPT")
-					getError(commandAcceptError)
-					commandUserDropErrorTCP := runCommand("ip6tables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-					getError(commandUserDropErrorTCP)
-					commandUserDropErrorUDP := runCommand("ip6tables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-					getError(commandUserDropErrorUDP)
-				}
-
 			}
 			w.WriteHeader(200)
 			w.Write([]byte(resultHTML))
