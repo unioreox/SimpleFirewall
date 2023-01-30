@@ -11,6 +11,10 @@ type SFWConfig struct {
 	AuthPort           int    //认证端口
 	TurnstileSiteKey   string //人机验证sitekey
 	TurnstileSecretKey string //人机验证secretkey
+	TelegramToken      string //Telegram机器人token
+	TelegramAdmin      int64  //Telegram管理员ID
+	TLSCert            string //TLS证书
+	TLSKey             string //TLS密钥
 	Commands           []string
 }
 

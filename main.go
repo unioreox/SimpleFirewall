@@ -2,6 +2,8 @@ package main
 
 import (
 	sfwconfig "SimpleFirewall/config"
+	"SimpleFirewall/telegram"
+
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,7 +15,8 @@ import (
 )
 
 func main() {
-	run()
+	go run()
+	go telegram.RunBot()
 }
 func run() {
 	fmt.Println("SimpleFirewall正在启动...")
@@ -72,12 +75,18 @@ func run() {
 	}
 	fmt.Println("iptables规则检查完毕")
 	//配置完毕
-
 	//启动认证服务器
-	fmt.Println("已启动认证服务器")
 	http.HandleFunc("/auth", auth)
-	httpListenError := http.ListenAndServe(":"+strconv.Itoa(config.AuthPort), nil)
-	getError(httpListenError)
+	if config.TLSCert != "" && config.TLSKey != "" {
+		fmt.Println("已启动HTTPS认证服务器")
+		httpListenError := http.ListenAndServeTLS(":"+strconv.Itoa(config.AuthPort), config.TLSCert, config.TLSKey, nil)
+		getError(httpListenError)
+	} else {
+		fmt.Println("已启动HTTP服务器")
+		httpListenError := http.ListenAndServe(":"+strconv.Itoa(config.AuthPort), nil)
+		getError(httpListenError)
+	}
+
 }
 func auth(w http.ResponseWriter, r *http.Request) {
 	config := sfwconfig.ReadConfig("./conf.toml")

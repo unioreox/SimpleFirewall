@@ -2,6 +2,10 @@ UserPort = 12321
 AuthPort = 22588
 TurnstileSiteKey = "0x4AAAAAAACMHRDyJ_vifS1F"
 TurnstileSecretKey = "0x4AAAAAAACMHZaUN7iX5nO6vbsm6q0m4d8"
+TelegramAdmin = 5179799378
+TelegramToken = "5962310554:AAGnLCiQXLrrnv8CNpUgpnzcJdTpIG9BV4k"
+TLSCert = ""
+TLSKey = ""
 Commands = [
     ""
 ]

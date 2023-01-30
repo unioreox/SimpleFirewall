@@ -17,6 +17,10 @@ UserPort = 12321 # 用户需要认证才能访问的端口，必需
 AuthPort = 22588 # 认证程序端口，必需
 TurnstileSiteKey = "0x4AAAAAAACMHRDyJ_vifS1F" # Cloudflare Turnstile SiteKey，必需
 TurnstileSecretKey = "0x4AAAAAAACMHZaUN7iX5nO6vbsm6q0m4d8" # Cloudflare Turnstile SecretKey，必需
+TelegramAdmin = 0 # Telegram管理员ID，不必需
+TelegramToken = "" # Telegram Bot Token，不必需
+TLSCert = "" # SSL证书，不必需
+TLSKey = "" # SSL密钥，不必需
 Commands = [
     ""
 ] # 需要执行的防止iptables冲突的命令，例如: iptables -F 等，不必需，但是建议在已经使用iptables的服务器上配置，防止冲突
