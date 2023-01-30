@@ -22,6 +22,16 @@ Commands = [
 ] # 需要执行的防止iptables冲突的命令，例如: iptables -F 等，不必需，但是建议在已经使用iptables的服务器上配置，防止冲突
 ```
 
+### 安装指南
+- 拉取项目
+```shell
+git clone https://github.com/unioreox/SimpleFirewall.git && cd SimpleFirewall
+```
+- 编译项目（[确保Golang已安装](https://go.dev/doc/install)）
+```
+go build
+```
+
 ### UI定制指南
 - UI模板文件路径: 程序同目录下的 html : auth.html && result.html
 ```
