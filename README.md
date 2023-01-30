@@ -23,13 +23,14 @@ Commands = [
 ```
 
 ### 安装指南
-- 拉取项目
+- 拉取并编译项目
 ```shell
 git clone https://github.com/unioreox/SimpleFirewall.git && cd SimpleFirewall
-```
-- 编译项目（[确保Golang已安装](https://go.dev/doc/install)）
-```
 go build
+```
+- 运行项目（[确保Golang已安装](https://go.dev/doc/install)）
+```
+./SimpleFirewall
 ```
 
 ### UI定制指南
