@@ -53,6 +53,8 @@ func run() {
 		fmt.Println("放行认证端口(tcp) 规则不存在,正在添加")
 		commandAuthAcceptError := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
 		getError(commandAuthAcceptError)
+		commandAuthAcceptError6 := runCommand("ip6tables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
+		getError(commandAuthAcceptError6)
 	}
 
 	if commandUserCheckErrorTCP == nil || commandUserCheckErrorUDP == nil || commandUserCheckErrorTCP6 == nil || commandUserCheckErrorUDP6 == nil {
@@ -61,8 +63,12 @@ func run() {
 		fmt.Println("禁用用户端口(tcp+udp) 规则不存在,正在添加")
 		commandUserDropErrorTCP := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 		getError(commandUserDropErrorTCP)
+		commandUserDropErrorTCP6 := runCommand("ip6tables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+		getError(commandUserDropErrorTCP6)
 		commandUserDropErrorUDP := runCommand("iptables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 		getError(commandUserDropErrorUDP)
+		commandUserDropErrorUDP6 := runCommand("ip6tables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+		getError(commandUserDropErrorUDP6)
 	}
 	fmt.Println("iptables规则检查完毕")
 	//配置完毕
