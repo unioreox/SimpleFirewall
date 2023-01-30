@@ -15,8 +15,7 @@ import (
 )
 
 func main() {
-	go run()
-	go telegram.RunBot()
+	run()
 }
 func run() {
 	fmt.Println("SimpleFirewall正在启动...")
