@@ -1,8 +1,8 @@
 # SimpleFirewall - Go实现的简易防火墙(用户自动认证白名单)
-- 基于iptables实现
+- 基于iptables && ip6tables实现
 - 目前功能仅限于用户验证和添加白名单
 - 理论上可以提高节点安全性，抗封锁，降低主动探测风险
-- 目前仅支持IPv4, 未来会通过ip6tables支持IPv6
+- 目前已支持IPv4与IPv6双栈
 - 使用Cloudflare Turnstile进行用户验证，减小错判率
 - 理论支持任何安装有iptables的Linux系统
 - 支持使用Toml配置文件，无需动态配置

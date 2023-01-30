@@ -30,16 +30,24 @@ func run() {
 	fmt.Println("防冲突及初始化命令执行完毕")
 
 	//配置iptables规则
-	fmt.Println("检查iptables规则...")
-	//检查规则是否存在
+	fmt.Println("检查IPv4 iptables规则...")
+	//检查IPv4规则是否存在
 	//放行认证端口(tcp)
 	commandAuthCheckError := runCommand("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
 	//禁用用户端口
 	commandUserCheckErrorTCP := runCommand("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 	commandUserCheckErrorUDP := runCommand("iptables -C INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 
+	fmt.Println("检查IPv6 iptables规则...")
+	//检查IPv6规则是否存在
+	//放行认证端口(tcp)
+	commandAuthCheckError6 := runCommand("ip6tables -C INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
+	//禁用用户端口
+	commandUserCheckErrorTCP6 := runCommand("ip6tables -C INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+	commandUserCheckErrorUDP6 := runCommand("ip6tables -C INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+
 	//判断iptables规则是否存在
-	if commandAuthCheckError == nil {
+	if commandAuthCheckError == nil || commandAuthCheckError6 == nil {
 		fmt.Println("放行认证端口(tcp) 规则已存在,不更改")
 	} else {
 		fmt.Println("放行认证端口(tcp) 规则不存在,正在添加")
@@ -47,7 +55,7 @@ func run() {
 		getError(commandAuthAcceptError)
 	}
 
-	if commandUserCheckErrorTCP == nil || commandUserCheckErrorUDP == nil {
+	if commandUserCheckErrorTCP == nil || commandUserCheckErrorUDP == nil || commandUserCheckErrorTCP6 == nil || commandUserCheckErrorUDP6 == nil {
 		fmt.Println("禁用用户端口(tcp+udp) 规则已存在,不更改")
 	} else {
 		fmt.Println("禁用用户端口(tcp+udp) 规则不存在,正在添加")
@@ -94,23 +102,48 @@ func auth(w http.ResponseWriter, r *http.Request) {
 			getError(parseIPError)
 			ip := ipAddr.Addr().String()
 			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
-			commandCheckError := runCommand("iptables -C INPUT -s " + ip + " -j ACCEPT")
+
+			var commandCheckError error
+			isIPv4 := ipAddr.Addr().Is4()
+			isIPv6 := ipAddr.Addr().Is6()
+			if isIPv4 {
+				commandCheckError = runCommand("iptables -C INPUT -s " + ip + " -j ACCEPT")
+			}
+			if isIPv6 {
+				commandCheckError = runCommand("ip6tables -C INPUT -s " + ip + " -j ACCEPT")
+			}
 			if commandCheckError == nil {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已存在", -1)
 			} else {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已通过认证", -1)
 
-				//删除原规则
-				commandUserDeleteErrorTCP := runCommand("iptables -D INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-				getError(commandUserDeleteErrorTCP)
-				commandUserDeleteErrorUDP := runCommand("iptables -D INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-				getError(commandUserDeleteErrorUDP)
-				commandAcceptError := runCommand("iptables -A INPUT -s " + ip + " -j ACCEPT")
-				getError(commandAcceptError)
-				commandUserDropErrorTCP := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-				getError(commandUserDropErrorTCP)
-				commandUserDropErrorUDP := runCommand("iptables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
-				getError(commandUserDropErrorUDP)
+				if isIPv4 {
+					//删除原规则
+					commandUserDeleteErrorTCP := runCommand("iptables -D INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+					getError(commandUserDeleteErrorTCP)
+					commandUserDeleteErrorUDP := runCommand("iptables -D INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+					getError(commandUserDeleteErrorUDP)
+					commandAcceptError := runCommand("iptables -A INPUT -s " + ip + " -j ACCEPT")
+					getError(commandAcceptError)
+					commandUserDropErrorTCP := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+					getError(commandUserDropErrorTCP)
+					commandUserDropErrorUDP := runCommand("iptables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+					getError(commandUserDropErrorUDP)
+				}
+
+				if isIPv6 {
+					//删除原规则
+					commandUserDeleteErrorTCP := runCommand("ip6tables -D INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+					getError(commandUserDeleteErrorTCP)
+					commandUserDeleteErrorUDP := runCommand("ip6tables -D INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+					getError(commandUserDeleteErrorUDP)
+					commandAcceptError := runCommand("ip6tables -A INPUT -s " + ip + " -j ACCEPT")
+					getError(commandAcceptError)
+					commandUserDropErrorTCP := runCommand("ip6tables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+					getError(commandUserDropErrorTCP)
+					commandUserDropErrorUDP := runCommand("ip6tables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
+					getError(commandUserDropErrorUDP)
+				}
 
 			}
 			w.WriteHeader(200)
