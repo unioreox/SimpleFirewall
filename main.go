@@ -3,34 +3,43 @@ package main
 import (
 	sfwconfig "SimpleFirewall/config"
 	"encoding/json"
-	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/netip"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 )
 
 func main() {
+	file := "./user-activity.log"
+	logFile, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logFile)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	run()
 }
 func run() {
-	fmt.Println("SimpleFirewall正在启动...")
-	fmt.Println("读取配置...")
+	log.SetPrefix("Init: ")
+	log.Println("SimpleFirewall正在启动...")
+	log.Println("读取配置...")
 	//读取配置文件
 	config := sfwconfig.ReadConfig("./conf.toml")
-	fmt.Println("执行防冲突及初始化命令")
-	//执行配置文件中初始化及防止冲突命令
+	log.Println("执行初始化命令,共 " + strconv.Itoa(len(config.Commands)) + " 条")
+	//执行配置文件中的初始化命令
 	for index, value := range config.Commands {
-		fmt.Println("执行第" + strconv.Itoa(index+1) + "条命令")
+		log.Println("执行第" + strconv.Itoa(index+1) + "条命令")
 		err := runCommand(value)
 		getError(err)
 	}
-	fmt.Println("防冲突及初始化命令执行完毕")
+	log.Println("初始化命令执行完毕")
 
 	//配置iptables规则
-	fmt.Println("检查IPv4 iptables规则...")
+	log.Println("检查IPv4 iptables规则...")
 	//检查IPv4规则是否存在
 	//放行认证端口(tcp)
 	commandAuthCheckError := runCommand("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
@@ -38,7 +47,7 @@ func run() {
 	commandUserCheckErrorTCP := runCommand("iptables -C INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 	commandUserCheckErrorUDP := runCommand("iptables -C INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 
-	fmt.Println("检查IPv6 iptables规则...")
+	log.Println("检查IPv6 iptables规则...")
 	//检查IPv6规则是否存在
 	//放行认证端口(tcp)
 	commandAuthCheckError6 := runCommand("ip6tables -C INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
@@ -48,9 +57,9 @@ func run() {
 
 	//判断iptables规则是否存在
 	if commandAuthCheckError == nil || commandAuthCheckError6 == nil {
-		fmt.Println("放行认证端口(tcp) 规则已存在,不更改")
+		log.Println("放行认证端口(tcp) 规则已存在,不更改")
 	} else {
-		fmt.Println("放行认证端口(tcp) 规则不存在,正在添加")
+		log.Println("放行认证端口(tcp) 规则不存在,正在添加")
 		commandAuthAcceptError := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
 		getError(commandAuthAcceptError)
 		commandAuthAcceptError6 := runCommand("ip6tables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j ACCEPT")
@@ -58,9 +67,9 @@ func run() {
 	}
 
 	if commandUserCheckErrorTCP == nil || commandUserCheckErrorUDP == nil || commandUserCheckErrorTCP6 == nil || commandUserCheckErrorUDP6 == nil {
-		fmt.Println("禁用用户端口(tcp+udp) 规则已存在,不更改")
+		log.Println("禁用用户端口(tcp+udp) 规则已存在,不更改")
 	} else {
-		fmt.Println("禁用用户端口(tcp+udp) 规则不存在,正在添加")
+		log.Println("禁用用户端口(tcp+udp) 规则不存在,正在添加")
 		commandUserDropErrorTCP := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 		getError(commandUserDropErrorTCP)
 		commandUserDropErrorTCP6 := runCommand("ip6tables -A INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
@@ -70,19 +79,20 @@ func run() {
 		commandUserDropErrorUDP6 := runCommand("ip6tables -A INPUT -p udp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
 		getError(commandUserDropErrorUDP6)
 	}
-	fmt.Println("iptables规则检查完毕")
+	log.Println("iptables规则检查完毕")
 	//配置完毕
 	//启动认证服务器
 	http.HandleFunc("/auth", auth)
 	if config.TLSCert != "" && config.TLSKey != "" {
-		fmt.Println("已启动HTTPS认证服务器")
+		log.Println("已启动HTTPS认证服务器")
 		httpListenError := http.ListenAndServeTLS(":"+strconv.Itoa(config.AuthPort), config.TLSCert, config.TLSKey, nil)
 		getError(httpListenError)
 	} else {
-		fmt.Println("已启动HTTP服务器")
+		log.Println("已启动HTTP服务器")
 		httpListenError := http.ListenAndServe(":"+strconv.Itoa(config.AuthPort), nil)
 		getError(httpListenError)
 	}
+	log.SetPrefix("User Activity: ")
 
 }
 func auth(w http.ResponseWriter, r *http.Request) {
@@ -95,13 +105,16 @@ func auth(w http.ResponseWriter, r *http.Request) {
 		getError(parseIPError)
 		ip := ipAddr.Addr().String()
 		isIPv6 := ipAddr.Addr().Is6()
+		fail2ban(ip, isIPv6)
 		if isIPv6 {
 			commandCheckError := runCommand("ip6tables -C INPUT -s " + ip + " -j ACCEPT")
 			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
 			if commandCheckError == nil {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已存在", -1)
+				log.Println("User IPv6 " + ip + " Exists")
 			} else {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已通过认证", -1)
+				log.Println("User IPv6 " + ip + " Authenticated")
 			}
 			//删除原规则
 			commandUserDeleteErrorTCP := runCommand("ip6tables -D INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
@@ -116,6 +129,9 @@ func auth(w http.ResponseWriter, r *http.Request) {
 			getError(commandUserDropErrorUDP)
 			w.WriteHeader(200)
 			w.Write([]byte(resultHTML))
+
+			log.Println("User IPv6 " + ip + " Accepted")
+
 		} else {
 			authHTML := sfwconfig.ReadTemplate("./html/auth.html")
 			authHTML = strings.Replace(authHTML, "{{IP}}", ip, -1)
@@ -145,9 +161,10 @@ func auth(w http.ResponseWriter, r *http.Request) {
 			}
 			if commandCheckError == nil {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已存在", -1)
+				log.Println("User IPv4 " + ip + " Exists")
 			} else {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已通过认证", -1)
-
+				log.Println("User IPv4 " + ip + " Authenticated")
 				if isIPv4 {
 					//删除原规则
 					commandUserDeleteErrorTCP := runCommand("iptables -D INPUT -p tcp --dport " + strconv.Itoa(config.UserPort) + " -j DROP")
@@ -171,10 +188,33 @@ func auth(w http.ResponseWriter, r *http.Request) {
 			ip := ipAddr.Addr().String()
 			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
 			resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "很遗憾，您的IP："+ip+"未通过认证", -1)
+			log.Println("User IPv4 " + ip + " Rejected")
 			w.WriteHeader(200)
 			w.Write([]byte(resultHTML))
 		}
 	}
+}
+
+func fail2ban(ip string, is6 bool) {
+	//在user-activity.log中查询ip出现次数
+	file, err1 := os.Open("./user-activity.log")
+	getError(err1)
+	defer file.Close()
+	configRaw, err2 := io.ReadAll(file)
+	times := strings.Count(string(configRaw), ip)
+	if times >= 5 {
+		//封禁ip
+		if is6 {
+			commandError := runCommand("ip6tables -A INPUT -s " + ip + " -j DROP")
+			getError(commandError)
+			log.Println("User IPv6 " + ip + " Banned")
+		} else {
+			commandError := runCommand("iptables -A INPUT -s " + ip + " -j DROP")
+			getError(commandError)
+			log.Println("User IPv4 " + ip + " Banned")
+		}
+	}
+	getError(err2)
 }
 
 func getError(e error) {

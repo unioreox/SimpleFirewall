@@ -7,7 +7,8 @@
 - 理论支持任何安装有iptables的Linux系统
 - 支持使用Toml配置文件，无需动态配置
 - 界面支持定制化，可以自行修改模板文件(html/auth.html && html/result.html)来优化界面
-- 计划支持：TelegramBot手动动态删减IP白名单;限制验证次数;
+- 限制验证次数，防止恶意攻击，默认次数为5次，可在源码中修改，后续会在配置文件中跟进（未测试）
+- 计划支持：TelegramBot手动动态删减IP白名单;
 
 ### 配置指南
 - 配置文件路径: 程序同目录下的 conf.toml 文件
@@ -17,8 +18,8 @@ UserPort = 12321 # 用户需要认证才能访问的端口，必需
 AuthPort = 22588 # 认证程序端口，必需
 TurnstileSiteKey = "0x4AAAAAAACMHRDyJ_vifS1F" # Cloudflare Turnstile SiteKey，必需
 TurnstileSecretKey = "0x4AAAAAAACMHZaUN7iX5nO6vbsm6q0m4d8" # Cloudflare Turnstile SecretKey，必需
-TelegramAdmin = 0 # Telegram管理员ID，不必需
-TelegramToken = "" # Telegram Bot Token，不必需
+TelegramAdmin = 0 # Telegram管理员ID，不必需，未开发完毕
+TelegramToken = "" # Telegram Bot Token，不必需，未开发完毕
 TLSCert = "" # SSL证书路径，不必需
 TLSKey = "" # SSL密钥路径，不必需
 Commands = [
@@ -27,12 +28,12 @@ Commands = [
 ```
 
 ### 安装指南
-- 拉取并编译项目
+- 拉取并编译项目（[确保Golang已安装](https://go.dev/doc/install)）
 ```shell
 git clone https://github.com/unioreox/SimpleFirewall.git && cd SimpleFirewall
 go build
 ```
-- 运行项目（[确保Golang已安装](https://go.dev/doc/install)）
+- 运行项目
 ```
 ./SimpleFirewall
 ```

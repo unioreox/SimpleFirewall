@@ -7,5 +7,5 @@ TelegramToken = "5962310554:AAGnLCiQXLrrnv8CNpUgpnzcJdTpIG9BV4k"
 TLSCert = ""
 TLSKey = ""
 Commands = [
-    ""
+    "echo '欢迎使用SimpleFirewall！'"
 ]
