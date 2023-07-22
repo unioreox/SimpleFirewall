@@ -14,6 +14,7 @@
 - 配置文件路径: 程序同目录下的 conf.toml 文件
 - 配置文件示例:
 ```toml
+LogPath = "/var/log/SimpleFirewall.log" # 日志文件路径，必需
 UserPort = 12321 # 用户需要认证才能访问的端口，必需
 AuthPort = 22588 # 认证程序端口，必需
 TurnstileSiteKey = "0x4AAAAAAACMHRDyJ_vifS1F" # Cloudflare Turnstile SiteKey，必需

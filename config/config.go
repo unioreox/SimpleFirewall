@@ -7,6 +7,7 @@ import (
 )
 
 type SFWConfig struct {
+	LogPath            string //日志路径
 	UserPort           int    //访问端口
 	AuthPort           int    //认证端口
 	TurnstileSiteKey   string //人机验证sitekey

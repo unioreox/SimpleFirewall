@@ -15,28 +15,36 @@ import (
 	"strings"
 )
 
-var configPath string
+var configPath string          //全局配置路径
+var config sfwconfig.SFWConfig //全局配置
 
 func main() {
-	fmt.Println("SimpleFirewall正在启动...日志已输出在 user-activity.log 中")
+	fmt.Println("SimpleFirewall正在启动...")
 	configPtr := flag.String("c", "./conf.toml", "配置文件路径")
 	flag.Parse()
 	configPath = *configPtr
-	file := "./user-activity.log"
+	run()
+}
+func run() {
+	//读取配置文件
+	config = sfwconfig.ReadConfig(configPath)
+	fmt.Println("SimpleFirewall读取配置成功，详细日志保存在 " + config.LogPath)
+
+	//初始化日志配置
+	file := config.LogPath
 	logFile, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
 	if err != nil {
 		panic(err)
 	}
 	log.SetOutput(logFile)
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	run()
-}
-func run() {
+
+	//启动消息
 	log.SetPrefix("Init: ")
-	log.Println("SimpleFirewall正在启动...")
-	log.Println("读取配置...")
-	//读取配置文件
-	config := sfwconfig.ReadConfig(configPath)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	log.Println("SimpleFirewall启动成功，配置中...")
+
+	//执行命令
+	log.SetPrefix("Exec: ")
 	log.Println("执行初始化命令,共 " + strconv.Itoa(len(config.Commands)) + " 条")
 	//执行配置文件中的初始化命令
 	for index, value := range config.Commands {
@@ -104,7 +112,6 @@ func run() {
 
 }
 func auth(w http.ResponseWriter, r *http.Request) {
-	config := sfwconfig.ReadConfig("./conf.toml")
 	r.ParseForm()
 	authToken := r.Form.Get("cf-turnstile-response")
 	if authToken == "" {
@@ -204,8 +211,8 @@ func auth(w http.ResponseWriter, r *http.Request) {
 }
 
 func fail2ban(ip string, is6 bool) {
-	//在user-activity.log中查询ip出现次数
-	file, err1 := os.Open("./user-activity.log")
+	//在Log文件中查询ip出现次数
+	file, err1 := os.Open(config.LogPath)
 	getError(err1)
 	configRaw, err2 := io.ReadAll(file)
 	defer file.Close()
