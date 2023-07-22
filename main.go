@@ -1,5 +1,6 @@
 package main
 
+import "C"
 import (
 	sfwconfig "SimpleFirewall/config"
 	"encoding/json"
@@ -150,11 +151,11 @@ func auth(w http.ResponseWriter, r *http.Request) {
 		} else {
 			authHTML := sfwconfig.ReadTemplate(config.TemplatePath + "/auth.html")
 			authHTML = strings.Replace(authHTML, "{{IP}}", ip, -1)
-			authHTML = strings.Replace(authHTML, "{{Turnstile-SiteKey}}", sfwconfig.ReadConfig("./conf.toml").TurnstileSiteKey, -1)
+			authHTML = strings.Replace(authHTML, "{{Turnstile-SiteKey}}", config.TurnstileSiteKey, -1)
 			w.Write([]byte(authHTML))
 		}
 	} else {
-		result, postError := http.Post("https://challenges.cloudflare.com/turnstile/v0/siteverify", "application/x-www-form-urlencoded", strings.NewReader("secret="+sfwconfig.ReadConfig("./conf.toml").TurnstileSecretKey+"&response="+authToken))
+		result, postError := http.Post("https://challenges.cloudflare.com/turnstile/v0/siteverify", "application/x-www-form-urlencoded", strings.NewReader("secret="+config.TurnstileSecretKey+"&response="+authToken))
 		getError(postError)
 		defer result.Body.Close()
 		body, readError := io.ReadAll(result.Body)
@@ -220,14 +221,14 @@ func fail2ban(ip string, is6 bool) {
 	if times >= 5 {
 		//用户端口封禁ip
 		if is6 {
-			commandError := runCommand("ip6tables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
+			commandError := runCommand("ip6tables -A INPUT -p tcp -s " + ip + " --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
 			getError(commandError)
-			commandError = runCommand("ip6tables -A INPUT -p udp --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
+			commandError = runCommand("ip6tables -A INPUT -p udp -s " + ip + " --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
 			getError(commandError)
 			log.Println("User IPv6 " + ip + " Banned")
 		} else {
-			commandError := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
-			commandError = runCommand("iptables -A INPUT -p udp --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
+			commandError := runCommand("iptables -A INPUT -p tcp -s " + ip + " --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
+			commandError = runCommand("iptables -A INPUT -p udp -s " + ip + " --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
 			getError(commandError)
 			log.Println("User IPv4 " + ip + " Banned")
 		}
