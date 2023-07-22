@@ -3,6 +3,8 @@ package main
 import (
 	sfwconfig "SimpleFirewall/config"
 	"encoding/json"
+	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,7 +15,13 @@ import (
 	"strings"
 )
 
+var configPath string
+
 func main() {
+	fmt.Println("SimpleFirewall正在启动...日志已输出在 user-activity.log 中")
+	configPtr := flag.String("c", "./conf.toml", "配置文件路径")
+	flag.Parse()
+	configPath = *configPtr
 	file := "./user-activity.log"
 	logFile, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
 	if err != nil {
@@ -28,7 +36,7 @@ func run() {
 	log.Println("SimpleFirewall正在启动...")
 	log.Println("读取配置...")
 	//读取配置文件
-	config := sfwconfig.ReadConfig("./conf.toml")
+	config := sfwconfig.ReadConfig(configPath)
 	log.Println("执行初始化命令,共 " + strconv.Itoa(len(config.Commands)) + " 条")
 	//执行配置文件中的初始化命令
 	for index, value := range config.Commands {

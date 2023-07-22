@@ -35,7 +35,7 @@ go build
 ```
 - 运行项目
 ```
-./SimpleFirewall
+./SimpleFirewall -c [配置文件路径]
 ```
 
 ### UI定制指南
