@@ -218,13 +218,16 @@ func fail2ban(ip string, is6 bool) {
 	defer file.Close()
 	times := strings.Count(string(configRaw), ip)
 	if times >= 5 {
-		//封禁ip
+		//用户端口封禁ip
 		if is6 {
-			commandError := runCommand("ip6tables -A INPUT -s " + ip + " -j DROP")
+			commandError := runCommand("ip6tables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
+			getError(commandError)
+			commandError = runCommand("ip6tables -A INPUT -p udp --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
 			getError(commandError)
 			log.Println("User IPv6 " + ip + " Banned")
 		} else {
-			commandError := runCommand("iptables -A INPUT -s " + ip + " -j DROP")
+			commandError := runCommand("iptables -A INPUT -p tcp --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
+			commandError = runCommand("iptables -A INPUT -p udp --dport " + strconv.Itoa(config.AuthPort) + " -j DROP")
 			getError(commandError)
 			log.Println("User IPv4 " + ip + " Banned")
 		}
