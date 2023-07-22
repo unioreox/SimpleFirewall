@@ -199,8 +199,8 @@ func fail2ban(ip string, is6 bool) {
 	//在user-activity.log中查询ip出现次数
 	file, err1 := os.Open("./user-activity.log")
 	getError(err1)
-	defer file.Close()
 	configRaw, err2 := io.ReadAll(file)
+	defer file.Close()
 	times := strings.Count(string(configRaw), ip)
 	if times >= 5 {
 		//封禁ip
