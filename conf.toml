@@ -1,3 +1,4 @@
+TemplatePath = "/usr/local/etc/sfw/html"
 LogPath = "/var/log/SimpleFirewall.log"
 UserPort = 12321
 AuthPort = 22588

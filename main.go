@@ -98,7 +98,7 @@ func run() {
 	log.Println("iptables规则检查完毕")
 	//配置完毕
 	//启动认证服务器
-	http.HandleFunc("/auth", auth)
+	http.HandleFunc("/sfw", auth)
 	if config.TLSCert != "" && config.TLSKey != "" {
 		log.Println("已启动HTTPS认证服务器")
 		httpListenError := http.ListenAndServeTLS(":"+strconv.Itoa(config.AuthPort), config.TLSCert, config.TLSKey, nil)
@@ -123,7 +123,7 @@ func auth(w http.ResponseWriter, r *http.Request) {
 		fail2ban(ip, isIPv6)
 		if isIPv6 {
 			commandCheckError := runCommand("ip6tables -C INPUT -s " + ip + " -j ACCEPT")
-			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
+			resultHTML := sfwconfig.ReadTemplate(config.TemplatePath + "/result.html")
 			if commandCheckError == nil {
 				resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "恭喜您，您的IP："+ip+" 已存在", -1)
 				log.Println("User IPv6 " + ip + " Exists")
@@ -148,7 +148,7 @@ func auth(w http.ResponseWriter, r *http.Request) {
 			log.Println("User IPv6 " + ip + " Accepted")
 
 		} else {
-			authHTML := sfwconfig.ReadTemplate("./html/auth.html")
+			authHTML := sfwconfig.ReadTemplate(config.TemplatePath + "/auth.html")
 			authHTML = strings.Replace(authHTML, "{{IP}}", ip, -1)
 			authHTML = strings.Replace(authHTML, "{{Turnstile-SiteKey}}", sfwconfig.ReadConfig("./conf.toml").TurnstileSiteKey, -1)
 			w.Write([]byte(authHTML))
@@ -167,7 +167,7 @@ func auth(w http.ResponseWriter, r *http.Request) {
 			ipAddr, parseIPError := netip.ParseAddrPort(remoteAddr)
 			getError(parseIPError)
 			ip := ipAddr.Addr().String()
-			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
+			resultHTML := sfwconfig.ReadTemplate(config.TemplatePath + "/result.html")
 
 			var commandCheckError error
 			isIPv4 := ipAddr.Addr().Is4()
@@ -201,7 +201,7 @@ func auth(w http.ResponseWriter, r *http.Request) {
 			ipAddr, parseIPError := netip.ParseAddrPort(remoteAddr)
 			getError(parseIPError)
 			ip := ipAddr.Addr().String()
-			resultHTML := sfwconfig.ReadTemplate("./html/result.html")
+			resultHTML := sfwconfig.ReadTemplate(config.TemplatePath + "/result.html")
 			resultHTML = strings.Replace(resultHTML, "{{MESSAGE}}", "很遗憾，您的IP："+ip+"未通过认证", -1)
 			log.Println("User IPv4 " + ip + " Rejected")
 			w.WriteHeader(200)
