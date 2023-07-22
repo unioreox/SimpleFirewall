@@ -99,7 +99,7 @@ func run() {
 	log.Println("iptables规则检查完毕")
 	//配置完毕
 	//启动认证服务器
-	http.HandleFunc("/sfw", auth)
+	http.HandleFunc("/auth", auth)
 	if config.TLSCert != "" && config.TLSKey != "" {
 		log.Println("已启动HTTPS认证服务器")
 		httpListenError := http.ListenAndServeTLS(":"+strconv.Itoa(config.AuthPort), config.TLSCert, config.TLSKey, nil)
